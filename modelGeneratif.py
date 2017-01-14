@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import random
+import numpy as np, numpy.random
 from numpy.random import choice
 from pprint import pprint
 
@@ -22,8 +23,23 @@ def genCauses(N):
 	c.append(maxProba)
 
 	# On retourne le tableau de probabilités
-
 	return c
+
+# Methode similaire à celle ci-dessus. Cependant, les valeurs sont générées selon
+# une loi normale centrée en 0.5 réduite pour obtenir des valeurs entre 0 et 1.
+# On divise ensuite les valeurs obtenue par leur somme pour qu'elles somment à 1
+# Cette methode sert à generer des probas sans valeurs extrèmes.
+# params : N le nombre de causes totales
+# return : Un tableau de taille N contenant les probabilités d'apparition de chaque cause
+def genCausesGaussienne(X):
+	
+	# On choisit des valeurs selon une loi normale centree reduite
+	c = np.random.normal(0.5,0.25,X)
+	# Normalisation des valeurs
+	cReturn = [c[x] / sum(c) for x in range(len(c))]
+
+	# On retourne le tableau de probabilités
+	return cReturn
 
 # Generation des probabilités d'observation conditionelles aux causes
 # params : C le tableau des causes
@@ -99,7 +115,7 @@ def genObservations(C,F,N):
 
 
 
-tabCauses = genCauses(5)
+tabCauses = genCausesGaussienne(5)
 print "Probas Causes:\n"
 pprint(tabCauses)
 print "\n"
