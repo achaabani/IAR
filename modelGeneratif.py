@@ -67,7 +67,7 @@ def genProbasObservations(C,N):
 		# tab[2]. Le remplissage se fait de la même manière que pour générer le tableau
 		# de probas des causes. On utilise donc la même methode, bien que les deux tableaux
 		# correspondent à des choses differentes
-		tab.append(genCauses(N))
+		tab.append(genCausesGaussienne(N))
 
 		probas.append(tab)
 
