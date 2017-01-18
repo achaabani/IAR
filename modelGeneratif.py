@@ -6,6 +6,8 @@ import numpy as np, numpy.random
 from numpy.random import choice
 from pprint import pprint
 
+import collections
+
 # Generation des causes du modèle
 # params : N le nombre de causes totales
 # return : Un tableau de taille N contenant les probabilités d'apparition de chaque cause
@@ -35,6 +37,8 @@ def genCausesGaussienne(X):
 	
 	# On choisit des valeurs selon une loi normale centree reduite
 	c = np.random.normal(0.5,0.25,X)
+	while(any(x < 0 for x in c)):
+		c = np.random.normal(0.5,0.25,X)
 	# Normalisation des valeurs
 	cReturn = [c[x] / sum(c) for x in range(len(c))]
 
@@ -84,11 +88,16 @@ def genObservations(C,F,N):
 	# Tableau contenant toutes les observations
 	observations = []
 
+
+	# Test
+	causes = []
+
 	# On genere N observations
 	for i in range(N):
 		# On choisit l'une des causes à partir du tableau de probas des causes
 		# (On prend l'index d'une valeur tirée dans le tableau C avec les probas du tableau)
 		cause = choice(range(len(C)),1,p=C)
+		causes.append(cause[0])
 
 		# Tableau des valeurs d'observations
 		tab = []
@@ -108,24 +117,26 @@ def genObservations(C,F,N):
 		# On ajoute l'observation effectuée au tableau des observations
 		observations.append(tab)
 
-		print "( Cause : {}".format(cause)
+	#return observations
 
 	# On renvoie l'ensemble des observations 
-	return observations
+	Point = collections.namedtuple('Point', ['observations','causes'])
+	p = Point(observations,causes)
+	return p
 
 
+if (__name__ == '__main__'):
+	tabCauses = genCausesGaussienne(5)
+	print("Probas Causes:\n")
+	pprint(tabCauses)
+	print("\n")
 
-tabCauses = genCausesGaussienne(5)
-print "Probas Causes:\n"
-pprint(tabCauses)
-print "\n"
+	tabProbas = genProbasObservations(tabCauses,3)
+	print("Probas Condtionnelles Observations:\n")
+	pprint(tabProbas)
+	print("\n")
 
-tabProbas = genProbasObservations(tabCauses,3)
-print "Probas Condtionnelles Observations:\n"
-pprint(tabProbas)
-print "\n"
-
-observations = genObservations(tabCauses,tabProbas,10)
-print "Observations:\n"
-pprint(observations)
-print "\n"
+	observations = genObservations(tabCauses,tabProbas,10)
+	print("Observations:\n")
+	pprint(observations.observations)
+	print("\n")
