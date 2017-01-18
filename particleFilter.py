@@ -214,8 +214,7 @@ def particleFilter(observations, alpha = 1, M = 200):
 		print("-- NEW TRIAL --")
 
 tabCauses = genCausesGaussienne(5)
+tabProbas = genProbasObservations(tabCauses,3)
+observations,causes = genObservations(tabCauses,tabProbas,30)
 
-tabProbas1 = genProbasObservations(tabCauses,1)
-observations,causes = genObservations(tabCauses,tabProbas1,30)
-
-particleFilter(observations)
+particleFilter(observations, alpha = 1, M = 100)
