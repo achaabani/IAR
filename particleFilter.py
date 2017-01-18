@@ -7,6 +7,8 @@ import random
 from pprint import pprint
 from numpy.random import choice
 
+import math
+
 # Fonction de particle filter
 # params : Observations le tableau des observations à un temps t
 #		   alpha le paramètre de concentration
@@ -34,6 +36,9 @@ def particleFilter(observations, alpha = 1, M = 200):
 	# distributions de probas contenues dans P
 	causes = []
 	causes.append(0)
+
+	# Prediction du renforcement ou non (0 pour non, 1 pour oui)
+
 
 	# On parcours toutes les observations après la 1ere pas à pas
 	for t in range(1,len(observations)):
@@ -114,7 +119,6 @@ def particleFilter(observations, alpha = 1, M = 200):
 		# Maintenant que les causes pour chaque particules sont tirées, on cherche
 		# desormais les probas à partir des causes générées dans chaque particule
 
-
 		# Pour chaque cause possible, on compte le nombre de fois où elle apparait
 		# pour une temps t donné, puis on normalise
 		tab = [0 for _ in range(maxlen)]
@@ -123,11 +127,95 @@ def particleFilter(observations, alpha = 1, M = 200):
 		P.append(tab)
 		causes.append(choice(maxlen,1,p=P[-1])[0])
 
+		# //////////////////////////////////////// #
+
+		# Calcul de la probabilité d'avoir renforcement selon les observations précédentes
+
+		# Vt = P(f_t,1 = US | f_t,2:D, F_1:t-1)
+
+		Vt = [0, 0]
+
+		for m in range(M):
+
+			# Le nombre de causes déterminées
+			nbCauses = max(causesParticles[m]) + 1
+
+			# Tableau de probabilité de chaque cause pour la particule m actuelle
+			p = [0 for _ in range(nbCauses + 1)]
+
+			# Equation (1)
+			eq1bis = [0 for _ in range(nbCauses + 1)]
+			# Pour chaque cause tirée dans le tableau des "vraies" causes choisies (pas celles de particules)
+			# P(k) = Nk / t-1+alpha
+			for k in range(len(p) - 1):
+				eq1bis[k] = causes.count(k) / (t + alpha)
+			# Proba d'obtenir une nouvelle cause
+			eq1bis[len(eq1bis)-1] = alpha / (t + alpha)
+
+			# Equation (4)
+			eq4bis = [0 for _ in range(nbCauses + 1)]
+			# Pour chaque cause connue k
+			for k in range(len(p)):
+				# product = produit des probas
+				product = 1
+				# Pour chaque feature observé, sauf le 1er, on calcule sa proba selon k
+				for i in range(1,len(observations[0])):
+					# La somme du nombre d'occurences
+					somme = sum(((observations[_t][i] == observations[t][i]) and (causesParticles[m][_t] == k)) for _t in range(t))
+					somme += 1
+
+					# On divise par la somme du nombre de cas + le nombre de j obtenus
+					maxJ = max([observations[_t][i] for _t in range(t)]) + 1
+					somme /= (causesParticles[m].count(k) + maxJ)
+
+					product *= somme
+
+
+				eq4bis[k] = product
+
+			# Equation (3)
+			eq3bis = [0 for _ in range(nbCauses + 1)]
+			# Le denominateur est égal à la somme sur tous les choix possibles du produit des probas
+			denominateur = sum(eq1bis[k] * eq4bis[k] for k in range(len(p)))
+
+			# On calcule les probas finales en multipliant les 2 equations du numerateur EQ1 et EQ4
+			# et en divisant le produit par le denominateur.
+			for k in range(len(p)):
+				eq3bis[k] = eq1bis[k] * eq4bis[k] / denominateur
+
+			r = eq3bis
+
+
+			# Pour obtenir la proba d'avoir renforcement selon une cause k,
+			# On fait un comptage du nombre de fois qu'on a eu renforcement lors de cette cause k
+			for k in range(len(p)):
+				pf = [0, 0]
+				pf[0] = sum(((observations[_t][0] == 0) and (causesParticles[m][_t] == k)) for _t in range(t))
+				pf[1] = sum(((observations[_t][0] == 1) and (causesParticles[m][_t] == k)) for _t in range(t))
+
+				# Si la cause k a été choisie au moins une fois par la particule, on normalise les probas
+				if(sum(pf) != 0):
+					pf = [x / sum(pf) for x in pf]
+				# Sinon, on estime que les probabilités d'avoir renforcement ou non pour cette cause
+				# sont égales
+				else:
+					pf[0] = 0.5
+					pf[1] = 0.5
+
+
+				Vt[0] += r[k]*pf[0]
+				Vt[1] += r[k]*pf[1]
+
+		
+		Vt = [x / M for x in Vt]
+
+		print(Vt)
 
 		print("-- NEW TRIAL --")
 
 tabCauses = genCausesGaussienne(5)
-tabProbas = genProbasObservations(tabCauses,2)
-observations,causes = genObservations(tabCauses,tabProbas,20)
+
+tabProbas1 = genProbasObservations(tabCauses,1)
+observations,causes = genObservations(tabCauses,tabProbas1,30)
 
 particleFilter(observations)
